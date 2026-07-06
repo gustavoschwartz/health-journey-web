@@ -2,11 +2,19 @@ import { useEffect, useState } from "react";
 import { submitCheckin } from "../lib/api";
 import { yesterdayISO } from "../lib/dates";
 
-const FEELING_OPTIONS = [
+const WORKOUT_FEELING_OPTIONS = [
   { value: "strong", label: "Strong", className: "border-teal-200 text-teal-700 hover:bg-teal-50" },
   { value: "normal", label: "Normal", className: "border-slate-200 text-slate-700 hover:bg-slate-50" },
   { value: "weak", label: "Weak", className: "border-amber-200 text-amber-700 hover:bg-amber-50" },
 ];
+
+const OVERALL_FEELING_OPTIONS = [
+  { value: "good", label: "Good", className: "border-teal-200 text-teal-700 hover:bg-teal-50" },
+  { value: "neutral", label: "Neutral", className: "border-slate-200 text-slate-700 hover:bg-slate-50" },
+  { value: "bad", label: "Bad", className: "border-amber-200 text-amber-700 hover:bg-amber-50" },
+];
+
+const ALCOHOL_TYPES = ["beer", "wine", "hard_liquor"];
 
 function formatYesterday() {
   const d = new Date();
@@ -26,10 +34,20 @@ export default function CheckinScreen() {
   const [errorMessage, setErrorMessage] = useState("");
   const [completeMessage, setCompleteMessage] = useState("");
 
+  const [caloriesInput, setCaloriesInput] = useState("");
+  const [alcoholType, setAlcoholType] = useState("beer");
+  const [alcoholDrinks, setAlcoholDrinks] = useState("");
+
   useEffect(() => {
     startCheckin();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    setCaloriesInput("");
+    setAlcoholType("beer");
+    setAlcoholDrinks("");
+  }, [currentPrompt?.field]);
 
   async function startCheckin() {
     setStatus("loading");
@@ -56,7 +74,7 @@ export default function CheckinScreen() {
     }
   }
 
-  async function handleAnswer(feeling) {
+  async function submitAnswer(field, value, displayAnswer, stravaId) {
     if (!currentPrompt || submitting) return;
     setSubmitting(true);
     const answeredPrompt = currentPrompt;
@@ -64,9 +82,9 @@ export default function CheckinScreen() {
     try {
       const res = await submitCheckin({
         date: yesterdayISO(),
-        field: "workout_feeling",
-        value: feeling,
-        stravaId: answeredPrompt.strava_id,
+        field,
+        value,
+        stravaId,
       });
 
       if (res.status === "error") {
@@ -77,7 +95,7 @@ export default function CheckinScreen() {
 
       setHistory((prev) => [
         ...prev,
-        { prompt: answeredPrompt.next_prompt, answer: feeling },
+        { prompt: answeredPrompt.next_prompt, answer: displayAnswer },
       ]);
       applyResponse(res);
     } catch {
@@ -87,6 +105,27 @@ export default function CheckinScreen() {
       setSubmitting(false);
     }
   }
+
+  function handleCaloriesSubmit(e) {
+    e.preventDefault();
+    const calories = Number(caloriesInput);
+    if (!caloriesInput || Number.isNaN(calories)) return;
+    submitAnswer("calories_previous_day", calories, `${calories} cal`);
+  }
+
+  function handleAlcoholNone() {
+    submitAnswer("alcohol", "none", "None");
+  }
+
+  function handleAlcoholSubmit(e) {
+    e.preventDefault();
+    const drinks = Number(alcoholDrinks);
+    if (!alcoholDrinks || Number.isNaN(drinks) || drinks <= 0) return;
+    const label = `${drinks} ${alcoholType.replace("_", " ")}`;
+    submitAnswer("alcohol", { type: alcoholType, drinks }, label);
+  }
+
+  const field = currentPrompt?.field;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -130,19 +169,107 @@ export default function CheckinScreen() {
           <p className="mb-4 text-[15px] leading-relaxed text-slate-800">
             {currentPrompt.next_prompt}
           </p>
-          <div className="flex gap-2">
-            {FEELING_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
+
+          {field === "workout_feeling" && (
+            <div className="flex gap-2">
+              {WORKOUT_FEELING_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  disabled={submitting}
+                  onClick={() =>
+                    submitAnswer("workout_feeling", opt.value, opt.value, currentPrompt.strava_id)
+                  }
+                  className={`flex-1 rounded-xl border px-4 py-2.5 text-[14px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${opt.className}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {field === "overall_feeling" && (
+            <div className="flex gap-2">
+              {OVERALL_FEELING_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => submitAnswer("overall_feeling", opt.value, opt.value)}
+                  className={`flex-1 rounded-xl border px-4 py-2.5 text-[14px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${opt.className}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {field === "calories_previous_day" && (
+            <form onSubmit={handleCaloriesSubmit} className="flex gap-2">
+              <input
+                type="number"
+                inputMode="numeric"
+                min="0"
+                autoFocus
+                value={caloriesInput}
+                onChange={(e) => setCaloriesInput(e.target.value)}
+                placeholder="e.g. 2100"
                 disabled={submitting}
-                onClick={() => handleAnswer(opt.value)}
-                className={`flex-1 rounded-xl border px-4 py-2.5 text-[14px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${opt.className}`}
+                className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-[14px] outline-none placeholder:text-slate-400 focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100 disabled:opacity-60"
+              />
+              <button
+                type="submit"
+                disabled={submitting || !caloriesInput}
+                className="rounded-xl bg-teal-600 px-5 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {opt.label}
+                Submit
               </button>
-            ))}
-          </div>
+            </form>
+          )}
+
+          {field === "alcohol" && (
+            <div className="flex flex-col gap-3">
+              <form onSubmit={handleAlcoholSubmit} className="flex gap-2">
+                <select
+                  value={alcoholType}
+                  onChange={(e) => setAlcoholType(e.target.value)}
+                  disabled={submitting}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[14px] capitalize outline-none focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100 disabled:opacity-60"
+                >
+                  {ALCOHOL_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {t.replace("_", " ")}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  value={alcoholDrinks}
+                  onChange={(e) => setAlcoholDrinks(e.target.value)}
+                  placeholder="Drinks"
+                  disabled={submitting}
+                  className="w-24 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-[14px] outline-none placeholder:text-slate-400 focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100 disabled:opacity-60"
+                />
+                <button
+                  type="submit"
+                  disabled={submitting || !alcoholDrinks}
+                  className="flex-1 rounded-xl bg-teal-600 px-4 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Log
+                </button>
+              </form>
+              <button
+                type="button"
+                onClick={handleAlcoholNone}
+                disabled={submitting}
+                className="rounded-xl border border-slate-200 px-4 py-2.5 text-[14px] font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                I didn't drink
+              </button>
+            </div>
+          )}
         </div>
       )}
 
