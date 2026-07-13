@@ -170,6 +170,22 @@ export default function CheckinScreen() {
             {currentPrompt.next_prompt}
           </p>
 
+          {field === "wakeup_feeling" && (
+            <div className="flex gap-2">
+              {OVERALL_FEELING_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => submitAnswer("wakeup_feeling", opt.value, opt.value)}
+                  className={`flex-1 rounded-xl border px-4 py-2.5 text-[14px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${opt.className}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {field === "workout_feeling" && (
             <div className="flex gap-2">
               {WORKOUT_FEELING_OPTIONS.map((opt) => (
