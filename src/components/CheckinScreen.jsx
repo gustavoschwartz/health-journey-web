@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { submitCheckin } from "../lib/api";
+import {
+  submitCheckin,
+  getAlcoholEntries,
+  submitAlcoholEntry,
+  deleteAlcoholEntry,
+} from "../lib/api";
 import { yesterdayISO } from "../lib/dates";
 
 const WORKOUT_FEELING_OPTIONS = [
@@ -35,6 +40,8 @@ export default function CheckinScreen() {
   const [completeMessage, setCompleteMessage] = useState("");
 
   const [caloriesInput, setCaloriesInput] = useState("");
+  const [alcoholEntries, setAlcoholEntries] = useState([]);
+  const [editingEntryId, setEditingEntryId] = useState(null);
   const [alcoholType, setAlcoholType] = useState("beer");
   const [alcoholDrinks, setAlcoholDrinks] = useState("");
 
@@ -45,9 +52,23 @@ export default function CheckinScreen() {
 
   useEffect(() => {
     setCaloriesInput("");
+    resetAlcoholForm();
+    if (currentPrompt?.field === "alcohol") {
+      refreshAlcoholEntries();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPrompt?.field]);
+
+  function resetAlcoholForm() {
+    setEditingEntryId(null);
     setAlcoholType("beer");
     setAlcoholDrinks("");
-  }, [currentPrompt?.field]);
+  }
+
+  async function refreshAlcoholEntries() {
+    const res = await getAlcoholEntries({ date: yesterdayISO() });
+    setAlcoholEntries(res.entries);
+  }
 
   async function startCheckin() {
     setStatus("loading");
@@ -113,16 +134,52 @@ export default function CheckinScreen() {
     submitAnswer("calories_previous_day", calories, `${calories} cal`);
   }
 
-  function handleAlcoholNone() {
-    submitAnswer("alcohol", "none", "None");
+  function handleAlcoholDone() {
+    const label =
+      alcoholEntries.length === 0
+        ? "None"
+        : `${alcoholEntries.length} ${alcoholEntries.length === 1 ? "entry" : "entries"}`;
+    submitAnswer("alcohol", undefined, label);
   }
 
-  function handleAlcoholSubmit(e) {
+  function handleAlcoholEdit(entry) {
+    setEditingEntryId(entry.id);
+    setAlcoholType(entry.type);
+    setAlcoholDrinks(String(entry.drinks));
+  }
+
+  async function handleAlcoholAddOrUpdate(e) {
     e.preventDefault();
     const drinks = Number(alcoholDrinks);
     if (!alcoholDrinks || Number.isNaN(drinks) || drinks <= 0) return;
-    const label = `${drinks} ${alcoholType.replace("_", " ")}`;
-    submitAnswer("alcohol", { type: alcoholType, drinks }, label);
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await submitAlcoholEntry({
+        date: yesterdayISO(),
+        type: alcoholType,
+        drinks,
+        entryId: editingEntryId,
+      });
+      if (res.status === "saved") {
+        await refreshAlcoholEntries();
+        resetAlcoholForm();
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleAlcoholDelete(entryId) {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await deleteAlcoholEntry({ entryId });
+      await refreshAlcoholEntries();
+      if (editingEntryId === entryId) resetAlcoholForm();
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const field = currentPrompt?.field;
@@ -245,7 +302,38 @@ export default function CheckinScreen() {
 
           {field === "alcohol" && (
             <div className="flex flex-col gap-3">
-              <form onSubmit={handleAlcoholSubmit} className="flex gap-2">
+              <div className="flex flex-col gap-2">
+                {alcoholEntries.length === 0 ? (
+                  <p className="text-[13px] text-slate-400">No drinks logged yet.</p>
+                ) : (
+                  alcoholEntries.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-2.5"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleAlcoholEdit(entry)}
+                        disabled={submitting}
+                        className="text-left text-[14px] capitalize text-slate-700 hover:text-teal-700 disabled:cursor-not-allowed"
+                      >
+                        {entry.type.replace("_", " ")} - {entry.drinks}{" "}
+                        {entry.drinks === 1 ? "drink" : "drinks"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAlcoholDelete(entry.id)}
+                        disabled={submitting}
+                        className="text-[13px] font-medium text-rose-600 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <form onSubmit={handleAlcoholAddOrUpdate} className="flex gap-2">
                 <select
                   value={alcoholType}
                   onChange={(e) => setAlcoholType(e.target.value)}
@@ -273,16 +361,17 @@ export default function CheckinScreen() {
                   disabled={submitting || !alcoholDrinks}
                   className="flex-1 rounded-xl bg-teal-600 px-4 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  Log
+                  {editingEntryId ? "Update" : "Add"}
                 </button>
               </form>
+
               <button
                 type="button"
-                onClick={handleAlcoholNone}
+                onClick={handleAlcoholDone}
                 disabled={submitting}
                 className="rounded-xl border border-slate-200 px-4 py-2.5 text-[14px] font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                I didn't drink
+                Done
               </button>
             </div>
           )}

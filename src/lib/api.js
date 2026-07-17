@@ -100,3 +100,47 @@ export async function submitCheckin({ date, field, value, stravaId }) {
 
   return response.json();
 }
+
+export async function getAlcoholEntries({ date }) {
+  const response = await fetch(
+    `${API_URL}/checkin/alcohol?date=${encodeURIComponent(date)}`,
+  );
+
+  if (!response.ok) {
+    throw new Error(`Get alcohol entries failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function submitAlcoholEntry({ date, type, drinks, entryId }) {
+  const response = await fetch(`${API_URL}/checkin/alcohol`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      date,
+      type,
+      drinks,
+      entry_id: entryId ?? null,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Alcohol entry request failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function deleteAlcoholEntry({ entryId }) {
+  const response = await fetch(
+    `${API_URL}/checkin/alcohol/${encodeURIComponent(entryId)}`,
+    { method: "DELETE" },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Delete alcohol entry failed: ${response.status}`);
+  }
+
+  return response.json();
+}
