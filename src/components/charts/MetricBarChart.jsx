@@ -1,7 +1,7 @@
 import {
+  Bar,
+  BarChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -9,7 +9,7 @@ import {
 } from "recharts";
 import { useMetricHistory } from "./useMetricHistory";
 
-export default function MetricLineChart({ metric, label, unit, color, days }) {
+export default function MetricBarChart({ metric, label, unit, color, days }) {
   const { data, error } = useMetricHistory(metric, days);
 
   return (
@@ -27,7 +27,7 @@ export default function MetricLineChart({ metric, label, unit, color, days }) {
 
       {!error && data && (
         <ResponsiveContainer width="100%" height={180}>
-          <LineChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+          <BarChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
             <XAxis
               dataKey="date"
@@ -35,24 +35,28 @@ export default function MetricLineChart({ metric, label, unit, color, days }) {
               tickFormatter={(d) => d.slice(5)}
               minTickGap={24}
             />
-            <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} domain={["auto", "auto"]} width={36} />
+            <YAxis
+              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              allowDecimals={false}
+              width={28}
+            />
             <Tooltip
               contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
-              formatter={(value) => [value == null ? "No data" : `${value} ${unit}`, label]}
+              formatter={(value) => [`${value} ${unit}`, label]}
             />
-            {/* connectNulls=false (Recharts' default too, set explicitly here since
-                it's the whole point of this chart): a missing day must render as a
-                visible break in the line, not an interpolated bridge or a drop to 0. */}
-            <Line
-              type="monotone"
+            {/* minPointSize gives a 0-value day a small visible sliver at the
+                baseline instead of rendering as literally nothing, so a rest
+                day / no-drinks day reads as "measured, zero", not a gap. Count
+                metrics never return null (see Task 25), so every day always
+                gets a bar; this is purely about that bar staying visible. */}
+            <Bar
               dataKey="value"
-              stroke={color}
-              strokeWidth={2}
-              dot={{ r: 2 }}
-              connectNulls={false}
+              fill={color}
+              radius={[2, 2, 0, 0]}
+              minPointSize={2}
               isAnimationActive={false}
             />
-          </LineChart>
+          </BarChart>
         </ResponsiveContainer>
       )}
     </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import MetricLineChart from "./charts/MetricLineChart";
+import MetricBarChart from "./charts/MetricBarChart";
 
 const RANGE_OPTIONS = [
   { label: "7 days", value: 7 },
@@ -13,6 +14,11 @@ const NUMERIC_CHARTS = [
   { metric: "resting_heart_rate", label: "Resting Heart Rate", unit: "bpm", color: "#e11d48" },
   { metric: "hrv", label: "HRV", unit: "ms", color: "#d97706" },
   { metric: "calories", label: "Calories", unit: "kcal", color: "#0284c7" },
+];
+
+const COUNT_CHARTS = [
+  { metric: "workout_frequency", label: "Workout Frequency", unit: "workouts", color: "#059669" },
+  { metric: "alcohol_drinks", label: "Alcohol Consumption", unit: "drinks", color: "#c026d3" },
 ];
 
 export default function ChartsScreen() {
@@ -42,6 +48,10 @@ export default function ChartsScreen() {
 
       {NUMERIC_CHARTS.map((chart) => (
         <MetricLineChart key={chart.metric} days={days} {...chart} />
+      ))}
+
+      {COUNT_CHARTS.map((chart) => (
+        <MetricBarChart key={chart.metric} days={days} {...chart} />
       ))}
     </div>
   );
