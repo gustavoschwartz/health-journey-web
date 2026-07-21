@@ -1,12 +1,14 @@
 import { useState } from "react";
 import ConversationScreen from "./components/ConversationScreen";
 import CheckinScreen from "./components/CheckinScreen";
+import ChartsScreen from "./components/ChartsScreen";
 import PasswordGate from "./components/PasswordGate";
 import { isAuthenticated } from "./lib/auth";
 
 const TABS = [
   { id: "conversation", label: "Conversation" },
   { id: "checkin", label: "Morning Check-in" },
+  { id: "charts", label: "Charts" },
 ];
 
 function App() {
@@ -60,7 +62,9 @@ function App() {
 
       <main className="flex min-h-0 flex-1 justify-center px-3 py-4 sm:px-6 sm:py-8">
         <div className="flex w-full max-w-3xl min-h-0 flex-col">
-          {activeTab === "conversation" ? <ConversationScreen /> : <CheckinScreen />}
+          {activeTab === "conversation" && <ConversationScreen />}
+          {activeTab === "checkin" && <CheckinScreen />}
+          {activeTab === "charts" && <ChartsScreen />}
         </div>
       </main>
     </div>

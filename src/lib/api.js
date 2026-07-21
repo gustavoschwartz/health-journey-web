@@ -144,3 +144,14 @@ export async function deleteAlcoholEntry({ entryId }) {
 
   return response.json();
 }
+
+export async function getMetricHistory({ metric, startDate, endDate }) {
+  const params = new URLSearchParams({ metric, start_date: startDate, end_date: endDate });
+  const response = await fetch(`${API_URL}/metrics/history?${params}`);
+
+  if (!response.ok) {
+    throw new Error(`Metric history request failed: ${response.status}`);
+  }
+
+  return response.json();
+}
