@@ -2,6 +2,7 @@ import { useState } from "react";
 import MetricLineChart from "./charts/MetricLineChart";
 import MetricBarChart from "./charts/MetricBarChart";
 import FeelingStripChart from "./charts/FeelingStripChart";
+import CombinedChart from "./charts/CombinedChart";
 import { useCombinedMetrics } from "./charts/useCombinedMetrics";
 
 const RANGE_OPTIONS = [
@@ -28,10 +29,12 @@ const FEELING_CHARTS = [
   { metric: "overall_feeling", label: "Overall Feeling" },
 ];
 
-// Task 29: this screen IS the combined view. Every chart below is fed by
-// one shared /metrics/combined fetch instead of a fetch of its own, so
-// they're all guaranteed to align to the same date range, and the whole
-// screen costs exactly one network call per range change.
+// Task 29: every chart below is fed by one shared /metrics/combined fetch
+// instead of a fetch of its own, so they're all guaranteed to align to the
+// same date range, and the whole screen costs exactly one network call per
+// range change. CombinedChart is the single-canvas overlay of all 9 series;
+// the individual cards below it stay, since they're already verified
+// per-metric detail views, not a duplicate of the combined chart.
 export default function ChartsScreen() {
   const [days, setDays] = useState(30);
   const { data, error } = useCombinedMetrics(days);
@@ -72,6 +75,8 @@ export default function ChartsScreen() {
 
       {!error && data && (
         <>
+          <CombinedChart combined={data} />
+
           {NUMERIC_CHARTS.map((chart) => (
             <MetricLineChart key={chart.metric} {...chart} data={data[chart.metric]} />
           ))}
