@@ -1,6 +1,7 @@
 import { useState } from "react";
 import MetricLineChart from "./charts/MetricLineChart";
 import MetricBarChart from "./charts/MetricBarChart";
+import FeelingStripChart from "./charts/FeelingStripChart";
 
 const RANGE_OPTIONS = [
   { label: "7 days", value: 7 },
@@ -19,6 +20,11 @@ const NUMERIC_CHARTS = [
 const COUNT_CHARTS = [
   { metric: "workout_frequency", label: "Workout Frequency", unit: "workouts", color: "#059669" },
   { metric: "alcohol_drinks", label: "Alcohol Consumption", unit: "drinks", color: "#c026d3" },
+];
+
+const FEELING_CHARTS = [
+  { metric: "wakeup_feeling", label: "Wakeup Feeling" },
+  { metric: "overall_feeling", label: "Overall Feeling" },
 ];
 
 export default function ChartsScreen() {
@@ -52,6 +58,10 @@ export default function ChartsScreen() {
 
       {COUNT_CHARTS.map((chart) => (
         <MetricBarChart key={chart.metric} days={days} {...chart} />
+      ))}
+
+      {FEELING_CHARTS.map((chart) => (
+        <FeelingStripChart key={chart.metric} days={days} {...chart} />
       ))}
     </div>
   );
