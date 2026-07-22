@@ -7,11 +7,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useMetricHistory } from "./useMetricHistory";
 
-export default function MetricBarChart({ metric, label, unit, color, days }) {
-  const { data, error } = useMetricHistory(metric, days);
-
+/** Purely presentational: data comes from the parent's single
+ * /metrics/combined fetch (Task 29), not a per-chart fetch of its own.
+ * Loading/error states are the parent's responsibility (useCombinedMetrics);
+ * this only ever renders once real data is available. */
+export default function MetricBarChart({ label, unit, color, data }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
       <div className="mb-2 flex items-baseline justify-between">
@@ -19,13 +20,7 @@ export default function MetricBarChart({ metric, label, unit, color, days }) {
         <span className="text-[12px] text-slate-400">{unit}</span>
       </div>
 
-      {error && <p className="py-10 text-center text-[13px] text-rose-600">{error}</p>}
-
-      {!error && !data && (
-        <p className="py-10 text-center text-[13px] text-slate-400">Loading…</p>
-      )}
-
-      {!error && data && (
+      {data && (
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />

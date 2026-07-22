@@ -2,6 +2,7 @@ import { useState } from "react";
 import MetricLineChart from "./charts/MetricLineChart";
 import MetricBarChart from "./charts/MetricBarChart";
 import FeelingStripChart from "./charts/FeelingStripChart";
+import { useCombinedMetrics } from "./charts/useCombinedMetrics";
 
 const RANGE_OPTIONS = [
   { label: "7 days", value: 7 },
@@ -27,8 +28,13 @@ const FEELING_CHARTS = [
   { metric: "overall_feeling", label: "Overall Feeling" },
 ];
 
+// Task 29: this screen IS the combined view. Every chart below is fed by
+// one shared /metrics/combined fetch instead of a fetch of its own, so
+// they're all guaranteed to align to the same date range, and the whole
+// screen costs exactly one network call per range change.
 export default function ChartsScreen() {
   const [days, setDays] = useState(30);
+  const { data, error } = useCombinedMetrics(days);
 
   return (
     <div className="flex flex-col gap-4 overflow-y-auto pb-4">
@@ -52,17 +58,33 @@ export default function ChartsScreen() {
         </div>
       </div>
 
-      {NUMERIC_CHARTS.map((chart) => (
-        <MetricLineChart key={chart.metric} days={days} {...chart} />
-      ))}
+      {error && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-[13px] text-rose-600">
+          {error}
+        </div>
+      )}
 
-      {COUNT_CHARTS.map((chart) => (
-        <MetricBarChart key={chart.metric} days={days} {...chart} />
-      ))}
+      {!error && !data && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-[13px] text-slate-400">
+          Loading…
+        </div>
+      )}
 
-      {FEELING_CHARTS.map((chart) => (
-        <FeelingStripChart key={chart.metric} days={days} {...chart} />
-      ))}
+      {!error && data && (
+        <>
+          {NUMERIC_CHARTS.map((chart) => (
+            <MetricLineChart key={chart.metric} {...chart} data={data[chart.metric]} />
+          ))}
+
+          {COUNT_CHARTS.map((chart) => (
+            <MetricBarChart key={chart.metric} {...chart} data={data[chart.metric]} />
+          ))}
+
+          {FEELING_CHARTS.map((chart) => (
+            <FeelingStripChart key={chart.metric} {...chart} data={data[chart.metric]} />
+          ))}
+        </>
+      )}
     </div>
   );
 }

@@ -155,3 +155,14 @@ export async function getMetricHistory({ metric, startDate, endDate }) {
 
   return response.json();
 }
+
+export async function getMetricsCombined({ startDate, endDate }) {
+  const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
+  const response = await fetch(`${API_URL}/metrics/combined?${params}`);
+
+  if (!response.ok) {
+    throw new Error(`Combined metrics request failed: ${response.status}`);
+  }
+
+  return response.json();
+}

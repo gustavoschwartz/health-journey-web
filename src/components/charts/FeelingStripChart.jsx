@@ -1,5 +1,3 @@
-import { useMetricHistory } from "./useMetricHistory";
-
 // Matches the iPhone app's FeelingStripChart.tsx exactly (kept in sync
 // manually, not shared code) so the color mapping is identical between
 // clients, per this task's DoD.
@@ -9,6 +7,18 @@ const FEELING_COLORS = {
   bad: "#ef4444",
 };
 const BLANK_COLOR = "#e5e7eb";
+
+/** Color for a single feeling-strip cell: the mapped color for a known
+ * good/neutral/bad string, or the blank color for anything else (null, a
+ * missing day, or an unexpected value). A plain FEELING_COLORS[value] lookup
+ * would silently return undefined (transparent) for a value outside the
+ * known set, which would defeat the "visibly blank" requirement exactly
+ * where it matters. */
+function feelingColor(value) {
+  return typeof value === "string" && value in FEELING_COLORS
+    ? FEELING_COLORS[value]
+    : BLANK_COLOR;
+}
 
 function evenlySpacedTickIndices(count, max) {
   if (max <= 0) return [0];
@@ -26,9 +36,11 @@ function LegendDot({ color, label }) {
   );
 }
 
-export default function FeelingStripChart({ metric, label, days }) {
-  const { data, error } = useMetricHistory(metric, days);
-
+/** Purely presentational: data comes from the parent's single
+ * /metrics/combined fetch (Task 29), not a per-chart fetch of its own.
+ * Loading/error states are the parent's responsibility (useCombinedMetrics);
+ * this only ever renders once real data is available. */
+export default function FeelingStripChart({ label, data }) {
   const tickIndices = data
     ? new Set(evenlySpacedTickIndices(5, data.length - 1))
     : new Set();
@@ -44,13 +56,7 @@ export default function FeelingStripChart({ metric, label, days }) {
         </div>
       </div>
 
-      {error && <p className="py-10 text-center text-[13px] text-rose-600">{error}</p>}
-
-      {!error && !data && (
-        <p className="py-10 text-center text-[13px] text-slate-400">Loading…</p>
-      )}
-
-      {!error && data && (
+      {data && (
         <div>
           <div className="flex gap-[2px]">
             {data.map((point) => (
@@ -58,12 +64,7 @@ export default function FeelingStripChart({ metric, label, days }) {
                 key={point.date}
                 title={`${point.date}: ${point.value ?? "no check-in"}`}
                 className="h-8 flex-1 rounded-sm"
-                style={{
-                  backgroundColor:
-                    typeof point.value === "string"
-                      ? FEELING_COLORS[point.value]
-                      : BLANK_COLOR,
-                }}
+                style={{ backgroundColor: feelingColor(point.value) }}
               />
             ))}
           </div>
