@@ -1,13 +1,19 @@
 import { formatDataItem } from "../lib/formatDataItem";
 
+const PAGE_SIZE = 50;
+
 /**
- * Renders the "Show 50 more" affordance plus any pages already fetched
+ * Renders the "Show N more" affordance plus any pages already fetched
  * (Task 36). Fetched pages are shown as a plain list — not narrated by the
  * orchestrator — directly under the assistant's message.
  */
 export default function PaginatedDataList({ pagination, onShowMore, loading }) {
   if (!pagination) return null;
-  const { source, items } = pagination;
+  const { source, items, nextOffset, totalMatched } = pagination;
+  // The last page can hold fewer than PAGE_SIZE items — e.g. 102 total
+  // means the third fetch only returns 2, not 50.
+  const nextBatchSize =
+    nextOffset != null ? Math.min(PAGE_SIZE, totalMatched - nextOffset) : 0;
 
   return (
     <div className="mt-2 border-t border-slate-200 pt-2">
@@ -18,16 +24,14 @@ export default function PaginatedDataList({ pagination, onShowMore, loading }) {
           ))}
         </ul>
       )}
-      {pagination.nextOffset != null && (
+      {nextOffset != null && (
         <button
           type="button"
           onClick={onShowMore}
           disabled={loading}
           className="rounded-lg border border-slate-200 px-2.5 py-1 text-[12px] font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading
-            ? "Loading…"
-            : `Show 50 more of ${pagination.totalMatched}`}
+          {loading ? "Loading…" : `Show ${nextBatchSize} more of ${totalMatched}`}
         </button>
       )}
     </div>
