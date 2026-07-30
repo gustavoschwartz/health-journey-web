@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { streamConversation, streamSync } from "../lib/api";
+import { getRangeData, streamConversation, streamSync } from "../lib/api";
 import { getLastSyncedDate, setLastSyncedDate } from "../lib/dates";
+import { itemsFromRangeResponse } from "../lib/formatDataItem";
 import ToolCallChip from "./ToolCallChip";
+import PaginatedDataList from "./PaginatedDataList";
 
 const MARKDOWN_COMPONENTS = {
   p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
@@ -99,6 +101,7 @@ export default function ConversationScreen() {
       role: "assistant",
       content: "",
       toolEvents: [],
+      pagination: null,
       error: false,
     };
 
@@ -138,6 +141,21 @@ export default function ConversationScreen() {
               return { ...m, toolEvents };
             })
           );
+        } else if (event.type === "pagination") {
+          setMessages((prev) =>
+            updateMessage(prev, assistantId, (m) => ({
+              ...m,
+              pagination: {
+                source: event.source,
+                fromDate: event.from_date,
+                toDate: event.to_date,
+                nextOffset: event.next_offset,
+                totalMatched: event.total_matched,
+                items: [],
+                loading: false,
+              },
+            }))
+          );
         } else if (event.type === "error") {
           setMessages((prev) =>
             updateMessage(prev, assistantId, (m) => ({
@@ -158,6 +176,49 @@ export default function ConversationScreen() {
       );
     } finally {
       setIsStreaming(false);
+    }
+  }
+
+  async function handleShowMore(messageId) {
+    const message = messages.find((m) => m.id === messageId);
+    const pagination = message?.pagination;
+    if (!pagination || pagination.nextOffset == null || pagination.loading) return;
+
+    setMessages((prev) =>
+      updateMessage(prev, messageId, (m) => ({
+        ...m,
+        pagination: { ...m.pagination, loading: true },
+      }))
+    );
+
+    try {
+      const body = await getRangeData({
+        source: pagination.source,
+        fromDate: pagination.fromDate,
+        toDate: pagination.toDate,
+        offset: pagination.nextOffset,
+      });
+      const newItems = itemsFromRangeResponse(pagination.source, body);
+
+      setMessages((prev) =>
+        updateMessage(prev, messageId, (m) => ({
+          ...m,
+          pagination: {
+            ...m.pagination,
+            items: [...m.pagination.items, ...newItems],
+            nextOffset: body.next_offset,
+            totalMatched: body.total_matched,
+            loading: false,
+          },
+        }))
+      );
+    } catch {
+      setMessages((prev) =>
+        updateMessage(prev, messageId, (m) => ({
+          ...m,
+          pagination: { ...m.pagination, loading: false },
+        }))
+      );
     }
   }
 
@@ -250,6 +311,13 @@ export default function ConversationScreen() {
                     m.id === messages[messages.length - 1].id && (
                       <span className="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse bg-slate-400 align-middle" />
                     )}
+                  {m.role === "assistant" && m.pagination && (
+                    <PaginatedDataList
+                      pagination={m.pagination}
+                      loading={m.pagination.loading}
+                      onShowMore={() => handleShowMore(m.id)}
+                    />
+                  )}
                 </div>
               </div>
             ))}

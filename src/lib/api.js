@@ -156,6 +156,26 @@ export async function getMetricHistory({ metric, startDate, endDate }) {
   return response.json();
 }
 
+/**
+ * GET /data/{source} — deterministic next-page fetch for a truncated range
+ * result (Task 36). source is the hyphenated form the orchestrator's
+ * pagination event already sends: "strava" | "apple-health" | "manual-log".
+ */
+export async function getRangeData({ source, fromDate, toDate, offset }) {
+  const params = new URLSearchParams({
+    from_date: fromDate,
+    to_date: toDate,
+    offset: String(offset),
+  });
+  const response = await fetch(`${API_URL}/data/${source}?${params}`);
+
+  if (!response.ok) {
+    throw new Error(`Range data request failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
 export async function getMetricsCombined({ startDate, endDate }) {
   const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
   const response = await fetch(`${API_URL}/metrics/combined?${params}`);
