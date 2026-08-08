@@ -176,6 +176,33 @@ export async function getRangeData({ source, fromDate, toDate, offset }) {
   return response.json();
 }
 
+/** GET /summary/weekly — a single week's rollup (Task 46/48). */
+export async function getWeeklySummary({ weekStart }) {
+  const params = new URLSearchParams({ week_start: weekStart });
+  const response = await fetch(`${API_URL}/summary/weekly?${params}`);
+
+  if (!response.ok) {
+    throw new Error(`Weekly summary request failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/** GET /summary/weekly/range — many weeks' rollups for the trends chart (Task 49). */
+export async function getWeeklySummaryRange({ fromWeekStart, toWeekStart }) {
+  const params = new URLSearchParams({
+    from_week_start: fromWeekStart,
+    to_week_start: toWeekStart,
+  });
+  const response = await fetch(`${API_URL}/summary/weekly/range?${params}`);
+
+  if (!response.ok) {
+    throw new Error(`Weekly summary range request failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
 export async function getMetricsCombined({ startDate, endDate }) {
   const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
   const response = await fetch(`${API_URL}/metrics/combined?${params}`);

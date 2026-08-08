@@ -2,6 +2,8 @@ import { useState } from "react";
 import ConversationScreen from "./components/ConversationScreen";
 import CheckinScreen from "./components/CheckinScreen";
 import ChartsScreen from "./components/ChartsScreen";
+import WeeklySummaryScreen from "./components/WeeklySummaryScreen";
+import WeeklyTrendsScreen from "./components/WeeklyTrendsScreen";
 import PasswordGate from "./components/PasswordGate";
 import { isAuthenticated } from "./lib/auth";
 
@@ -9,6 +11,8 @@ const TABS = [
   { id: "conversation", label: "Conversation" },
   { id: "checkin", label: "Morning Check-in" },
   { id: "charts", label: "Charts" },
+  { id: "weekly-summary", label: "Weekly Summary" },
+  { id: "weekly-trends", label: "Weekly Trends" },
 ];
 
 function App() {
@@ -65,6 +69,8 @@ function App() {
           {activeTab === "conversation" && <ConversationScreen />}
           {activeTab === "checkin" && <CheckinScreen />}
           {activeTab === "charts" && <ChartsScreen />}
+          {activeTab === "weekly-summary" && <WeeklySummaryScreen />}
+          {activeTab === "weekly-trends" && <WeeklyTrendsScreen />}
         </div>
       </main>
     </div>
