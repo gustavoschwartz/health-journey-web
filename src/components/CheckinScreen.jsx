@@ -6,6 +6,7 @@ import {
   deleteAlcoholEntry,
 } from "../lib/api";
 import { yesterdayISO } from "../lib/dates";
+import DailyRecapCard from "./DailyRecapCard";
 
 const WORKOUT_FEELING_OPTIONS = [
   { value: "strong", label: "Strong", className: "border-teal-200 text-teal-700 hover:bg-teal-50" },
@@ -21,18 +22,6 @@ const OVERALL_FEELING_OPTIONS = [
 
 const ALCOHOL_TYPES = ["beer", "wine", "hard_liquor"];
 
-const FEELING_LABELS = { good: "Good", neutral: "Neutral", bad: "Bad" };
-
-function feelingLabel(value) {
-  return value ? (FEELING_LABELS[value] ?? value) : "Not logged";
-}
-
-function formatKcal(value) {
-  if (value == null) return "—";
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${Math.round(value).toLocaleString()} kcal`;
-}
-
 function formatYesterday() {
   const d = new Date();
   d.setDate(d.getDate() - 1);
@@ -41,66 +30,6 @@ function formatYesterday() {
     month: "long",
     day: "numeric",
   });
-}
-
-// Task 53: the Check-In Complete recap panel, shared by both clients'
-// data shape (POST /checkin's final-step daily_recap field).
-function DailyRecapPanel({ recap, onGoToConversation }) {
-  const hasDrinks = recap.drinks_beer > 0 || recap.drinks_wine > 0 || recap.drinks_hard_liquor > 0;
-  const drinkParts = [
-    recap.drinks_beer > 0 && `${recap.drinks_beer} beer`,
-    recap.drinks_wine > 0 && `${recap.drinks_wine} wine`,
-    recap.drinks_hard_liquor > 0 && `${recap.drinks_hard_liquor} hard liquor`,
-  ].filter(Boolean);
-
-  return (
-    <div className="flex flex-col gap-1 rounded-xl border border-slate-200 p-5 text-left">
-      <Row label="Woke up feeling" value={feelingLabel(recap.wakeup_feeling)} />
-      <Row label="Overall feeling" value={feelingLabel(recap.overall_feeling)} />
-      <div className="my-2 border-t border-slate-100" />
-      <Row
-        label="Calories consumed"
-        value={recap.calories_previous_day != null ? recap.calories_previous_day.toLocaleString() : "Not logged"}
-      />
-      <Row
-        label="Workout calories"
-        value={
-          recap.workout_count > 0
-            ? `${recap.workout_calories.toLocaleString()} (${recap.workout_count} workout${recap.workout_count === 1 ? "" : "s"})`
-            : "No workouts"
-        }
-      />
-      <Row label="Net calories" value={formatKcal(recap.calories_net)} />
-      {!recap.workout_data_synced && (
-        <p className="mt-1 rounded-lg bg-amber-50 px-3 py-2 text-[13px] text-amber-700">
-          Yesterday's workout data may not have synced yet — net calories above could still be missing a workout.
-        </p>
-      )}
-      <div className="my-2 border-t border-slate-100" />
-      <Row label="Drinks" value={hasDrinks ? drinkParts.join(", ") : "None"} />
-      {recap.mounjaro_dose_mg != null && (
-        <Row label="Mounjaro" value={`${recap.mounjaro_dose_mg}mg`} />
-      )}
-      {onGoToConversation && (
-        <button
-          type="button"
-          onClick={onGoToConversation}
-          className="mt-4 self-start rounded-xl bg-teal-600 px-5 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-teal-700"
-        >
-          Continue to Conversation
-        </button>
-      )}
-    </div>
-  );
-}
-
-function Row({ label, value }) {
-  return (
-    <div className="flex items-center justify-between py-1.5 text-[14px]">
-      <span className="text-slate-500">{label}</span>
-      <span className="font-medium text-slate-800">{value}</span>
-    </div>
-  );
 }
 
 export default function CheckinScreen({ onGoToConversation }) {
@@ -466,7 +395,16 @@ export default function CheckinScreen({ onGoToConversation }) {
             </div>
             <h2 className="text-[15px] font-semibold text-slate-900">Check-In Complete</h2>
           </div>
-          <DailyRecapPanel recap={dailyRecap} onGoToConversation={onGoToConversation} />
+          <DailyRecapCard recap={dailyRecap} />
+          {onGoToConversation && (
+            <button
+              type="button"
+              onClick={onGoToConversation}
+              className="self-start rounded-xl bg-teal-600 px-5 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-teal-700"
+            >
+              Continue to Conversation
+            </button>
+          )}
         </div>
       )}
 

@@ -5,6 +5,7 @@ import { getLastSyncedDate, setLastSyncedDate } from "../lib/dates";
 import { itemsFromRangeResponse } from "../lib/formatDataItem";
 import ToolCallChip from "./ToolCallChip";
 import PaginatedDataList from "./PaginatedDataList";
+import DailyRecapCard from "./DailyRecapCard";
 
 const MARKDOWN_COMPONENTS = {
   p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
@@ -102,6 +103,7 @@ export default function ConversationScreen() {
       content: "",
       toolEvents: [],
       pagination: null,
+      dailyRecap: null,
       error: false,
     };
 
@@ -154,6 +156,18 @@ export default function ConversationScreen() {
                 items: [],
                 loading: false,
               },
+            }))
+          );
+        } else if (event.type === "day_recap") {
+          // get_day_recap's result, rendered as the same card
+          // CheckinScreen's Check-In Complete state uses instead of
+          // Claude re-typing every field back in prose. type is the only
+          // key not part of the DailyRecap shape.
+          const { type: _type, ...recap } = event;
+          setMessages((prev) =>
+            updateMessage(prev, assistantId, (m) => ({
+              ...m,
+              dailyRecap: recap,
             }))
           );
         } else if (event.type === "error") {
@@ -284,7 +298,9 @@ export default function ConversationScreen() {
                 className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed ${
+                  className={`rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed ${
+                    m.dailyRecap ? "w-full max-w-2xl" : "max-w-[80%]"
+                  } ${
                     m.role === "user"
                       ? "bg-teal-600 text-white"
                       : m.error
@@ -317,6 +333,11 @@ export default function ConversationScreen() {
                       loading={m.pagination.loading}
                       onShowMore={() => handleShowMore(m.id)}
                     />
+                  )}
+                  {m.role === "assistant" && m.dailyRecap && (
+                    <div className="mt-2">
+                      <DailyRecapCard recap={m.dailyRecap} />
+                    </div>
                   )}
                 </div>
               </div>
