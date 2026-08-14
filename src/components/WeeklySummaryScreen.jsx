@@ -139,6 +139,34 @@ export default function WeeklySummaryScreen() {
             </div>
           </Card>
 
+          <Card title="🩺 Vitals">
+            <StatRow
+              label="Steps (total)"
+              value={data.steps_total != null ? data.steps_total.toLocaleString() : "No data"}
+            />
+            <StatRow
+              label="Sleep (avg)"
+              value={data.sleep_hours_avg != null ? `${data.sleep_hours_avg} hrs` : "No data"}
+            />
+            <StatRow
+              label="Resting heart rate (avg)"
+              value={data.resting_heart_rate_avg != null ? `${data.resting_heart_rate_avg} bpm` : "No data"}
+            />
+            <StatRow
+              label="HRV (avg)"
+              value={data.hrv_ms_avg != null ? `${data.hrv_ms_avg} ms` : "No data"}
+            />
+            <StatRow label="Days synced" value={`${data.days_with_apple_health_data ?? 0} / 7`} />
+            <StatRow
+              label="Blood pressure (avg)"
+              value={
+                data.bp_reading_count
+                  ? `${data.bp_systolic_avg}/${data.bp_diastolic_avg}, pulse ${data.bp_pulse_avg} (${data.bp_reading_count} reading${data.bp_reading_count === 1 ? "" : "s"})`
+                  : "No readings this week"
+              }
+            />
+          </Card>
+
           <Card title="🍷 Drinks">
             <StatRow label="Beer" value={data.drinks_beer} />
             <StatRow label="Wine" value={data.drinks_wine} />

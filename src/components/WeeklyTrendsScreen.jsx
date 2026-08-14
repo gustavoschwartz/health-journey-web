@@ -61,6 +61,14 @@ export default function WeeklyTrendsScreen() {
     data?.weeks.map((w) => ({ week_start_date: w.week_start_date, value: w.workout_hours })) ?? [];
   const caloriesNetData =
     data?.weeks.map((w) => ({ week_start_date: w.week_start_date, value: w.calories_net })) ?? [];
+  const stepsData =
+    data?.weeks.map((w) => ({ week_start_date: w.week_start_date, value: w.steps_total })) ?? [];
+  const sleepHoursData =
+    data?.weeks.map((w) => ({ week_start_date: w.week_start_date, value: w.sleep_hours_avg })) ?? [];
+  const restingHeartRateData =
+    data?.weeks.map((w) => ({ week_start_date: w.week_start_date, value: w.resting_heart_rate_avg })) ?? [];
+  const hrvData =
+    data?.weeks.map((w) => ({ week_start_date: w.week_start_date, value: w.hrv_ms_avg })) ?? [];
 
   return (
     <div className="flex flex-col gap-4 overflow-y-auto pb-4">
@@ -112,6 +120,15 @@ export default function WeeklyTrendsScreen() {
             negativeColor="#e11d48"
             data={caloriesNetData}
           />
+          <WeeklyBarChart label="Steps" unit="total" color="#7c3aed" data={stepsData} />
+          <WeeklyBarChart label="Sleep" unit="hours/night avg" color="#0ea5e9" data={sleepHoursData} />
+          <WeeklyBarChart
+            label="Resting Heart Rate"
+            unit="bpm avg"
+            color="#e11d48"
+            data={restingHeartRateData}
+          />
+          <WeeklyBarChart label="HRV" unit="ms avg" color="#059669" data={hrvData} />
           <WeeklyStackedBarChart label="Drinks" series={DRINK_SERIES} data={data.weeks} />
           <WeeklyStackedBarChart label="Day Feeling Mix" series={DAY_FEELING_SERIES} data={data.weeks} />
           <WeeklyStackedBarChart label="Wakeup Feeling Mix" series={WAKEUP_FEELING_SERIES} data={data.weeks} />
