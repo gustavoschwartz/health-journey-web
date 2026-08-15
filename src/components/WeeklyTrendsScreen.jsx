@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import WeeklyBarChart from "./charts/WeeklyBarChart";
+import WeeklyLineChart from "./charts/WeeklyLineChart";
 import WeeklyStackedBarChart from "./charts/WeeklyStackedBarChart";
 import { getWeeklySummaryRange } from "../lib/api";
 import { addDaysISO, mostRecentCompletedWeekStartISO } from "../lib/dates";
@@ -26,6 +27,13 @@ const WAKEUP_FEELING_SERIES = [
   { key: "wakeups_felt_good", label: "Good", color: "#22c55e" },
   { key: "wakeups_felt_neutral", label: "Neutral", color: "#eab308" },
   { key: "wakeups_felt_bad", label: "Bad", color: "#ef4444" },
+];
+
+const WEIGHT_SERIES = [{ key: "weight_end_kg", label: "Weight", color: "#0d9488" }];
+
+const BLOOD_PRESSURE_SERIES = [
+  { key: "bp_systolic_avg", label: "Systolic", color: "#e11d48" },
+  { key: "bp_diastolic_avg", label: "Diastolic", color: "#2563eb" },
 ];
 
 export default function WeeklyTrendsScreen() {
@@ -129,6 +137,13 @@ export default function WeeklyTrendsScreen() {
             data={restingHeartRateData}
           />
           <WeeklyBarChart label="HRV" unit="ms avg" color="#059669" data={hrvData} />
+          <WeeklyLineChart label="Weight" unit="kg" series={WEIGHT_SERIES} data={data.weeks} />
+          <WeeklyLineChart
+            label="Blood Pressure"
+            unit="mmHg avg"
+            series={BLOOD_PRESSURE_SERIES}
+            data={data.weeks}
+          />
           <WeeklyStackedBarChart label="Drinks" series={DRINK_SERIES} data={data.weeks} />
           <WeeklyStackedBarChart label="Day Feeling Mix" series={DAY_FEELING_SERIES} data={data.weeks} />
           <WeeklyStackedBarChart label="Wakeup Feeling Mix" series={WAKEUP_FEELING_SERIES} data={data.weeks} />
