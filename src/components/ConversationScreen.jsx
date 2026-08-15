@@ -77,7 +77,10 @@ function SyncStatus({ syncState }) {
   return null;
 }
 
-export default function ConversationScreen() {
+// onCheckinReset (Task 55): fired when a checkin_reset SSE event arrives —
+// App.jsx switches the active tab to "checkin", the same mechanism Task 53
+// added for the recap's "Continue to Conversation" button, used in reverse.
+export default function ConversationScreen({ onCheckinReset } = {}) {
   const [sessionId] = useState(() => crypto.randomUUID());
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -170,6 +173,12 @@ export default function ConversationScreen() {
               dailyRecap: recap,
             }))
           );
+        } else if (event.type === "checkin_reset") {
+          // redo_checkin's result (Task 55) — same "deterministic event
+          // the client acts on directly" precedent as day_recap above,
+          // but this one changes which tab is shown next rather than
+          // rendering a card. Only ever emitted on a genuine reset.
+          onCheckinReset?.();
         } else if (event.type === "error") {
           setMessages((prev) =>
             updateMessage(prev, assistantId, (m) => ({
