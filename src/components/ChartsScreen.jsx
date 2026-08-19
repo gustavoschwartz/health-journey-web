@@ -7,6 +7,7 @@ import { useCombinedMetrics } from "./charts/useCombinedMetrics";
 
 const RANGE_OPTIONS = [
   { label: "7 days", value: 7 },
+  { label: "4 weeks", value: 28 },
   { label: "30 days", value: 30 },
   { label: "90 days", value: 90 },
 ];

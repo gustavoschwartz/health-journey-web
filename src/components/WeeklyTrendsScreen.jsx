@@ -6,6 +6,7 @@ import { getWeeklySummaryRange } from "../lib/api";
 import { addDaysISO, mostRecentCompletedWeekStartISO } from "../lib/dates";
 
 const RANGE_OPTIONS = [
+  { label: "4 weeks", value: 4 },
   { label: "8 weeks", value: 8 },
   { label: "13 weeks", value: 13 },
   { label: "26 weeks", value: 26 },
