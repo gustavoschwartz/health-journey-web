@@ -48,6 +48,21 @@ export function addDaysISO(dateStr, days) {
   return toISODate(d);
 }
 
+const MONTH_ABBREV = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+/** "2026-08-19" -> "Aug 19" (Task 57c, CheckinScreen's two-block recap
+ * section labels). Parsed manually rather than via `new Date(...)` —
+ * parsing a bare YYYY-MM-DD string as UTC and formatting in the browser's
+ * local timezone can shift the displayed day by one, mirroring
+ * HealthJourneyApp's own monthDayLabel for the same reason. */
+export function monthDayLabel(dateStr) {
+  const [, month, day] = dateStr.split("-").map(Number);
+  return `${MONTH_ABBREV[month - 1]} ${day}`;
+}
+
 const LAST_SYNCED_KEY = "hj_last_synced_date";
 
 export function getLastSyncedDate() {

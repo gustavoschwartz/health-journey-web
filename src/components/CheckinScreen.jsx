@@ -5,8 +5,9 @@ import {
   submitAlcoholEntry,
   deleteAlcoholEntry,
 } from "../lib/api";
-import { yesterdayISO } from "../lib/dates";
+import { yesterdayISO, monthDayLabel } from "../lib/dates";
 import DailyRecapCard from "./DailyRecapCard";
+import TodayRecapCard from "./TodayRecapCard";
 
 const WORKOUT_FEELING_OPTIONS = [
   { value: "strong", label: "Strong", className: "border-teal-200 text-teal-700 hover:bg-teal-50" },
@@ -39,7 +40,7 @@ export default function CheckinScreen({ onGoToConversation }) {
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [completeMessage, setCompleteMessage] = useState("");
-  const [dailyRecap, setDailyRecap] = useState(null);
+  const [checkinRecap, setCheckinRecap] = useState(null);
 
   const [caloriesInput, setCaloriesInput] = useState("");
   const [alcoholEntries, setAlcoholEntries] = useState([]);
@@ -89,7 +90,7 @@ export default function CheckinScreen({ onGoToConversation }) {
       setErrorMessage(res.message);
     } else if (res.status === "complete") {
       setCompleteMessage(res.message ?? "You're all caught up.");
-      setDailyRecap(res.daily_recap ?? null);
+      setCheckinRecap(res.checkin_recap ?? null);
       setCurrentPrompt(null);
       setStatus("complete");
     } else if (res.status === "pending") {
@@ -381,7 +382,7 @@ export default function CheckinScreen({ onGoToConversation }) {
         </div>
       )}
 
-      {status === "complete" && dailyRecap && (
+      {status === "complete" && checkinRecap && (
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-100">
@@ -395,7 +396,17 @@ export default function CheckinScreen({ onGoToConversation }) {
             </div>
             <h2 className="text-[15px] font-semibold text-slate-900">Check-In Complete</h2>
           </div>
-          <DailyRecapCard recap={dailyRecap} />
+
+          <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">
+            {`Yesterday, ${monthDayLabel(checkinRecap.yesterday.date)}`}
+          </p>
+          <DailyRecapCard recap={checkinRecap.yesterday} />
+
+          <p className="mt-2 text-[12px] font-semibold uppercase tracking-wide text-slate-400">
+            {`This morning, ${monthDayLabel(checkinRecap.today.date)}`}
+          </p>
+          <TodayRecapCard recap={checkinRecap.today} />
+
           {onGoToConversation && (
             <button
               type="button"
@@ -408,7 +419,7 @@ export default function CheckinScreen({ onGoToConversation }) {
         </div>
       )}
 
-      {status === "complete" && !dailyRecap && (
+      {status === "complete" && !checkinRecap && (
         <div className="flex flex-col items-center gap-2 py-10 text-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100">
             <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-teal-600">

@@ -6,29 +6,12 @@
 // was: so the two call sites stay visually identical instead of drifting
 // apart the next time one gets tweaked.
 
-const FEELING_LABELS = { good: "Good", neutral: "Neutral", bad: "Bad" };
-
-function feelingLabel(value) {
-  return value ? (FEELING_LABELS[value] ?? value) : "Not logged";
-}
+import { feelingLabel, formatSleep, formatWristTemp } from "../lib/recapFormat";
 
 function formatKcal(value) {
   if (value == null) return "—";
   const sign = value > 0 ? "+" : "";
   return `${sign}${Math.round(value).toLocaleString()} kcal`;
-}
-
-function formatSleep(hours, deepMin, remMin, awakeMin) {
-  if (hours == null) return "Not synced yet";
-  const wholeHours = Math.floor(hours);
-  const minutes = Math.round((hours - wholeHours) * 60);
-  const parts = [
-    deepMin != null && `${deepMin} min deep`,
-    remMin != null && `${remMin} min REM`,
-    awakeMin != null && `${awakeMin} min awake`,
-  ].filter(Boolean);
-  const detail = parts.length > 0 ? ` (${parts.join(", ")})` : "";
-  return `${wholeHours}h ${minutes}min${detail}`;
 }
 
 // Strava's sport_type comes back camelCase ("WeightTraining"), unspaced —
@@ -38,7 +21,9 @@ function humanizeWorkoutType(type) {
   return type.replace(/([a-z])([A-Z])/g, "$1 $2");
 }
 
-function Row({ label, value }) {
+// Exported for TodayRecapCard (Task 57c) — same row look, both blocks of
+// the check-in-completion recap.
+export function Row({ label, value }) {
   return (
     <div className="flex items-center justify-between py-1.5 text-[14px]">
       <span className="text-slate-500">{label}</span>
@@ -86,6 +71,7 @@ export default function DailyRecapCard({ recap }) {
         label="HRV"
         value={recap.hrv_ms != null ? `${Math.round(recap.hrv_ms)} ms` : "Not synced yet"}
       />
+      <Row label="Wrist temperature" value={formatWristTemp(recap.wrist_temperature_c)} />
       <Row label="Steps" value={recap.steps != null ? recap.steps.toLocaleString() : "Not synced yet"} />
       <Row label="Weight" value={recap.weight_kg != null ? `${recap.weight_kg} kg` : "No reading"} />
       {(recap.bp_readings ?? []).map((b, i) => (
