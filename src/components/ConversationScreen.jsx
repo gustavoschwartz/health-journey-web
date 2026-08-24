@@ -38,6 +38,21 @@ function updateMessage(messages, id, updater) {
   return messages.map((m) => (m.id === id ? updater(m) : m));
 }
 
+// Task 12d: strips the same handful of markdown syntax characters
+// MARKDOWN_COMPONENTS/ReactMarkdown already parses (bold, lists, links,
+// headings) before speaking a reply aloud — SpeechSynthesisUtterance has no
+// markdown awareness of its own, so unstripped text would have the voice
+// literally reading out asterisks, dashes, and link brackets. The opposite
+// of Task 12c's Copy button, deliberately — see handleCopy's comment.
+function stripMarkdownForSpeech(text) {
+  return text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // [text](url) -> text
+    .replace(/\*\*([^*]+)\*\*/g, "$1") // **bold** -> bold
+    .replace(/\*([^*]+)\*/g, "$1") // *italic* -> italic
+    .replace(/^#{1,6}\s+/gm, "") // # Heading -> Heading
+    .replace(/^[-*+]\s+/gm, ""); // - item / * item -> item
+}
+
 function SyncStatus({ syncState }) {
   if (!syncState) return null;
 
@@ -97,6 +112,9 @@ export default function ConversationScreen({ onCheckinReset, onCheckinRequested 
   // tapping the same message's Copy button twice within 2s extends the
   // confirmation instead of an earlier tap's stale timer clearing it early.
   const copyTimeoutRef = useRef(null);
+  // Task 12d: which assistant message (if any) is currently being read
+  // aloud — only one at a time, same single-tracker shape as copiedMessageId.
+  const [speakingMessageId, setSpeakingMessageId] = useState(null);
   const bottomRef = useRef(null);
 
   // Task 12c: copies the raw markdown source already held in state, not
@@ -120,6 +138,32 @@ export default function ConversationScreen({ onCheckinReset, onCheckinRequested 
         // copiedMessageId untouched rather than showing "Copied" for a
         // copy that didn't actually happen.
       });
+  }
+
+  // Task 12d: unlike iPhone's Tts (a single global NativeEventEmitter, where
+  // a stale event from an already-superseded utterance needs an explicit
+  // utteranceId match to avoid clearing a *newer* message's speaking state —
+  // see ConversationScreen.tsx's currentUtteranceIdRef), each
+  // SpeechSynthesisUtterance here gets its own onend/onerror closure bound
+  // to the specific `id` it was created for. A late event from a cancelled
+  // utterance can only ever match its own (now-stale) id, so the `prev ===
+  // id` guard alone is enough — no separate id-tracking ref needed on web.
+  function handlePlayToggle(id, text) {
+    window.speechSynthesis.cancel();
+    if (speakingMessageId === id) {
+      setSpeakingMessageId(null);
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(stripMarkdownForSpeech(text));
+    utterance.onend = () => {
+      setSpeakingMessageId((prev) => (prev === id ? null : prev));
+    };
+    utterance.onerror = () => {
+      setSpeakingMessageId((prev) => (prev === id ? null : prev));
+    };
+    setSpeakingMessageId(id);
+    window.speechSynthesis.speak(utterance);
   }
 
   useEffect(() => {
@@ -372,17 +416,28 @@ export default function ConversationScreen({ onCheckinReset, onCheckinRequested 
                     <span className="whitespace-pre-wrap">{m.content}</span>
                   )}
                   {m.content ? (
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(m.id, m.content)}
-                      className={`mt-1.5 block text-[11px] ${
-                        m.role === "user"
-                          ? "text-teal-100 hover:text-white"
-                          : "text-slate-400 hover:text-slate-600"
-                      }`}
-                    >
-                      {copiedMessageId === m.id ? "✓ Copied" : "📋 Copy"}
-                    </button>
+                    <div className="mt-1.5 flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(m.id, m.content)}
+                        className={`text-[11px] ${
+                          m.role === "user"
+                            ? "text-teal-100 hover:text-white"
+                            : "text-slate-400 hover:text-slate-600"
+                        }`}
+                      >
+                        {copiedMessageId === m.id ? "✓ Copied" : "📋 Copy"}
+                      </button>
+                      {m.role === "assistant" && (
+                        <button
+                          type="button"
+                          onClick={() => handlePlayToggle(m.id, m.content)}
+                          className="text-[11px] text-slate-400 hover:text-slate-600"
+                        >
+                          {speakingMessageId === m.id ? "⏹ Stop" : "▶️ Play"}
+                        </button>
+                      )}
+                    </div>
                   ) : null}
                   {m.role === "assistant" &&
                     isStreaming &&
