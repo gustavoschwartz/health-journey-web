@@ -88,7 +88,39 @@ export default function ConversationScreen({ onCheckinReset, onCheckinRequested 
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [syncState, setSyncState] = useState(null);
+  // Task 12c: which message (if any) is currently showing "Copied" — only
+  // one at a time, since clicking a new Copy button just moves the
+  // confirmation rather than stacking it.
+  const [copiedMessageId, setCopiedMessageId] = useState(null);
+  // The pending "revert to idle" timer for copiedMessageId — cleared and
+  // rescheduled on every tap (mirrors HealthJourneyApp's copyTimeoutRef), so
+  // tapping the same message's Copy button twice within 2s extends the
+  // confirmation instead of an earlier tap's stale timer clearing it early.
+  const copyTimeoutRef = useRef(null);
   const bottomRef = useRef(null);
+
+  // Task 12c: copies the raw markdown source already held in state, not
+  // ReactMarkdown's rendered DOM, so a copied list pastes back as "- item"
+  // lines rather than being silently reformatted or stripped.
+  function handleCopy(id, text) {
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        setCopiedMessageId(id);
+        if (copyTimeoutRef.current) {
+          clearTimeout(copyTimeoutRef.current);
+        }
+        copyTimeoutRef.current = setTimeout(() => {
+          setCopiedMessageId((prev) => (prev === id ? null : prev));
+          copyTimeoutRef.current = null;
+        }, 2000);
+      })
+      .catch(() => {
+        // Write denied/failed (permissions, insecure context) — leave
+        // copiedMessageId untouched rather than showing "Copied" for a
+        // copy that didn't actually happen.
+      });
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -339,6 +371,19 @@ export default function ConversationScreen({ onCheckinReset, onCheckinRequested 
                   ) : (
                     <span className="whitespace-pre-wrap">{m.content}</span>
                   )}
+                  {m.content ? (
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(m.id, m.content)}
+                      className={`mt-1.5 block text-[11px] ${
+                        m.role === "user"
+                          ? "text-teal-100 hover:text-white"
+                          : "text-slate-400 hover:text-slate-600"
+                      }`}
+                    >
+                      {copiedMessageId === m.id ? "✓ Copied" : "📋 Copy"}
+                    </button>
+                  ) : null}
                   {m.role === "assistant" &&
                     isStreaming &&
                     m.id === messages[messages.length - 1].id && (
