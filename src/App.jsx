@@ -67,7 +67,10 @@ function App() {
       <main className="flex min-h-0 flex-1 justify-center px-3 py-4 sm:px-6 sm:py-8">
         <div className="flex w-full max-w-3xl min-h-0 flex-col">
           {activeTab === "conversation" && (
-            <ConversationScreen onCheckinReset={() => setActiveTab("checkin")} />
+            <ConversationScreen
+              onCheckinReset={() => setActiveTab("checkin")}
+              onCheckinRequested={() => setActiveTab("checkin")}
+            />
           )}
           {activeTab === "checkin" && (
             <CheckinScreen onGoToConversation={() => setActiveTab("conversation")} />

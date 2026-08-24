@@ -231,6 +231,30 @@ export default function CheckinScreen({ onGoToConversation }) {
             {currentPrompt.next_prompt}
           </p>
 
+          {/* Task 57e: available at any step, not just before the first
+              question. Writes nothing -- check-in state is entirely derived
+              from which fields are still null, so there's nothing to
+              persist as "dismissed" -- and reuses the same
+              navigate-to-conversation callback the recap screen's "Continue
+              to Conversation" button already uses, since both mean exactly
+              the same thing here: leave this screen, nothing more to do
+              right now. */}
+          {onGoToConversation && (
+            <button
+              type="button"
+              onClick={onGoToConversation}
+              disabled={submitting}
+              className="mb-4 flex flex-col items-start text-left disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span className="text-[14px] font-medium text-slate-500 hover:text-slate-700">
+                Not now
+              </span>
+              <span className="text-[12px] text-slate-400">
+                You can always come back to this later.
+              </span>
+            </button>
+          )}
+
           {field === "wakeup_feeling" && (
             <div className="flex gap-2">
               {OVERALL_FEELING_OPTIONS.map((opt) => (

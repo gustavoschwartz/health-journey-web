@@ -80,7 +80,9 @@ function SyncStatus({ syncState }) {
 // onCheckinReset (Task 55): fired when a checkin_reset SSE event arrives —
 // App.jsx switches the active tab to "checkin", the same mechanism Task 53
 // added for the recap's "Continue to Conversation" button, used in reverse.
-export default function ConversationScreen({ onCheckinReset } = {}) {
+// onCheckinRequested (Task 57e): fired when a checkin_requested SSE event
+// arrives -- mirrors onCheckinReset exactly in the opposite direction.
+export default function ConversationScreen({ onCheckinReset, onCheckinRequested } = {}) {
   const [sessionId] = useState(() => crypto.randomUUID());
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -179,6 +181,12 @@ export default function ConversationScreen({ onCheckinReset } = {}) {
           // but this one changes which tab is shown next rather than
           // rendering a card. Only ever emitted on a genuine reset.
           onCheckinReset?.();
+        } else if (event.type === "checkin_requested") {
+          // request_checkin's result (Task 57e) — mirrors checkin_reset's
+          // own precedent in the opposite direction. Only ever emitted when
+          // the sequence is actually still incomplete, never on
+          // already_complete.
+          onCheckinRequested?.();
         } else if (event.type === "error") {
           setMessages((prev) =>
             updateMessage(prev, assistantId, (m) => ({
