@@ -55,7 +55,7 @@ export default function WeeklyLineChart({ label, unit, series, data }) {
       <h3 className="mb-2 text-[14px] font-semibold text-slate-900">{label}</h3>
 
       <ResponsiveContainer width="100%" height={180}>
-        <LineChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+        <LineChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis
             dataKey="week_start_date"
@@ -63,7 +63,13 @@ export default function WeeklyLineChart({ label, unit, series, data }) {
             tickFormatter={(d) => d.slice(5)}
             minTickGap={24}
           />
-          <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} domain={yDomain} width={36} />
+          {/* width matches WeeklyBarChart.jsx's YAxis width (56), which
+              renders full unpadded labels cleanly — this chart's previous
+              width={36} + margin left:-10 combination truncated the Weight
+              and Blood Pressure charts' labels (e.g. "96.0" became "9.17"
+              or similar), since 36px isn't enough for a decimal value plus
+              the negative left margin pushed the axis further left still. */}
+          <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} domain={yDomain} width={56} />
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
             labelFormatter={(d) => `Week of ${d}`}
