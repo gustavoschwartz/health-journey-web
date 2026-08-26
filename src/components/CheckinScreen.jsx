@@ -99,7 +99,7 @@ export default function CheckinScreen({ onGoToConversation }) {
     }
   }
 
-  async function submitAnswer(field, value, displayAnswer, stravaId) {
+  async function submitAnswer(field, value, displayAnswer, workoutId) {
     if (!currentPrompt || submitting) return;
     setSubmitting(true);
     const answeredPrompt = currentPrompt;
@@ -109,7 +109,7 @@ export default function CheckinScreen({ onGoToConversation }) {
         date: yesterdayISO(),
         field,
         value,
-        stravaId,
+        workoutId,
       });
 
       if (res.status === "error") {
@@ -279,7 +279,7 @@ export default function CheckinScreen({ onGoToConversation }) {
                   type="button"
                   disabled={submitting}
                   onClick={() =>
-                    submitAnswer("workout_feeling", opt.value, opt.value, currentPrompt.strava_id)
+                    submitAnswer("workout_feeling", opt.value, opt.value, currentPrompt.workout_id)
                   }
                   className={`flex-1 rounded-xl border px-4 py-2.5 text-[14px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${opt.className}`}
                 >

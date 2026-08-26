@@ -82,7 +82,11 @@ export async function* streamSync({ lastSyncedDate }) {
   yield* parseSSEStream(response);
 }
 
-export async function submitCheckin({ date, field, value, stravaId }) {
+// Task 71: submits workout_id, not strava_id, when saving a workout
+// feeling -- the one identifier guaranteed present regardless of source
+// (an Apple-Health-only workout has no strava_id at all). The backend
+// still accepts strava_id from other callers.
+export async function submitCheckin({ date, field, value, workoutId }) {
   const response = await fetch(`${API_URL}/checkin`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -90,7 +94,7 @@ export async function submitCheckin({ date, field, value, stravaId }) {
       date,
       field,
       value: value ?? null,
-      strava_id: stravaId ?? null,
+      workout_id: workoutId ?? null,
     }),
   });
 
