@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { getWeeklySummary } from "../lib/api";
 import { addDaysISO, mostRecentCompletedWeekStartISO } from "../lib/dates";
 
+// Task 50j: the denominator of `days_with_neat_data / 7`, and the threshold
+// below which the NEAT coverage caveat shows.
+const WEEK_LENGTH_DAYS = 7;
+
 function StatRow({ label, value }) {
   return (
     <div className="flex items-center justify-between border-b border-slate-100 py-1.5 last:border-0">
@@ -28,6 +32,14 @@ function formatSigned(n, unit = "") {
   const rounded = Math.round(n * 10) / 10;
   const sign = rounded > 0 ? "+" : "";
   return `${sign}${rounded}${unit}`;
+}
+
+// Task 50j: the four terms the weekly net subtracts read as negatives, the
+// same way they do on DailyRecapCard. Negate after the null check, never
+// before — `-null` is `-0`, and formatSigned renders that as "0 kcal", a
+// measured zero where the honest answer is "not computed for this week".
+function formatSubtracted(n, unit = "") {
+  return n == null ? "No data" : formatSigned(-n, unit);
 }
 
 export default function WeeklySummaryScreen() {
@@ -101,20 +113,49 @@ export default function WeeklySummaryScreen() {
           <Card title="🏋️ Workouts">
             <StatRow label="Count" value={data.workout_count} />
             <StatRow label="Hours" value={data.workout_hours} />
-            <StatRow label="Calories burned" value={data.workout_calories} />
             <StatRow
               label="Strong / Normal / Weak / Unrated"
               value={`${data.workout_feeling_strong_count} / ${data.workout_feeling_normal_count} / ${data.workout_feeling_weak_count} / ${data.workout_feeling_unrated_count}`}
             />
           </Card>
 
+          {/* Task 50j: the same five terms the daily recap card shows, using
+              bmr_kcal_total rather than the per-day bmr_kcal_used, so the
+              rows explain the net beneath them instead of contradicting it
+              by six days of BMR. "Calories burned" moved here from the
+              Workouts card above — it is the workout term, and showing it in
+              both places would be one figure twice under two labels. */}
           <Card title="🍽️ Calories">
             <StatRow
               label="Ingested total"
-              value={data.calories_ingested_total ?? "No data"}
+              value={formatSigned(data.calories_ingested_total, " kcal")}
             />
-            <StatRow label="Days logged" value={`${data.days_with_calorie_data} / 7`} />
+            <StatRow label="TEF" value={formatSubtracted(data.tef_kcal_total, " kcal")} />
+            <StatRow label="BMR" value={formatSubtracted(data.bmr_kcal_total, " kcal")} />
+            <StatRow label="NEAT" value={formatSubtracted(data.neat_kcal_total, " kcal")} />
+            <StatRow
+              label="Workout calories"
+              value={formatSubtracted(data.workout_calories, " kcal")}
+            />
             <StatRow label="Net" value={formatSigned(data.calories_net, " kcal")} />
+            <StatRow
+              label="Days logged"
+              value={`${data.days_with_calorie_data} / ${WEEK_LENGTH_DAYS}`}
+            />
+            <StatRow
+              label="Days with NEAT data"
+              value={
+                data.days_with_neat_data == null
+                  ? "No data"
+                  : `${data.days_with_neat_data} / ${WEEK_LENGTH_DAYS}`
+              }
+            />
+            {(data.days_with_neat_data ?? 0) < WEEK_LENGTH_DAYS && (
+              <p className="mt-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[12px] text-amber-700">
+                Active energy data may not have synced yet — the weekly net could still be
+                missing NEAT.
+              </p>
+            )}
           </Card>
 
           <Card title="⚖️ Weight">
@@ -156,7 +197,10 @@ export default function WeeklySummaryScreen() {
               label="HRV (avg)"
               value={data.hrv_ms_avg != null ? `${data.hrv_ms_avg} ms` : "No data"}
             />
-            <StatRow label="Days synced" value={`${data.days_with_apple_health_data ?? 0} / 7`} />
+            <StatRow
+              label="Days synced"
+              value={`${data.days_with_apple_health_data ?? 0} / ${WEEK_LENGTH_DAYS}`}
+            />
             <StatRow
               label="Blood pressure (avg)"
               value={

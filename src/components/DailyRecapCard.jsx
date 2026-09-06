@@ -11,7 +11,21 @@ import { feelingLabel, formatSleep, formatWristTemp } from "../lib/recapFormat";
 function formatKcal(value) {
   if (value == null) return "—";
   const sign = value > 0 ? "+" : "";
-  return `${sign}${Math.round(value).toLocaleString()} kcal`;
+  // `|| 0` normalizes negative zero: `(-0).toLocaleString()` is the string
+  // "-0", so a zero term negated by formatSubtracted below would render
+  // "-0 kcal" — which reads as a signed measurement rather than as nothing.
+  const rounded = Math.round(value) || 0;
+  return `${sign}${rounded.toLocaleString()} kcal`;
+}
+
+// Task 50j: the four terms the net subtracts read as negatives, so the block
+// is legible as the arithmetic it is rather than five unrelated figures.
+// Negate *after* the null check, never before — `-null` is `-0`, which
+// formatKcal renders as "0 kcal": a measured claim that the term was zero
+// instead of an admission it is missing, which is exactly the claim
+// neat_included exists to avoid making.
+function formatSubtracted(value) {
+  return value == null ? "—" : formatKcal(-value);
 }
 
 // Strava's sport_type comes back camelCase ("WeightTraining"), unspaced —
@@ -89,10 +103,6 @@ export default function DailyRecapCard({ recap }) {
 
       <div className="my-2 border-t border-slate-100" />
 
-      <Row
-        label="Calories consumed"
-        value={recap.calories_previous_day != null ? recap.calories_previous_day.toLocaleString() : "Not logged"}
-      />
       {(recap.workouts ?? []).map((w, i) => (
         <Row
           key={i}
@@ -103,15 +113,37 @@ export default function DailyRecapCard({ recap }) {
           }
         />
       ))}
+      {/* Task 50j: the five terms that produce the net, with the net below a
+          divider. Every figure is one the API returned — nothing here
+          combines two fields to make a third, which is what would make the
+          block a second, disagreeing implementation of the formula. */}
+      <Row label="Calories consumed" value={formatKcal(recap.calories_previous_day)} />
+      <Row label="TEF" value={formatSubtracted(recap.tef_kcal)} />
+      <Row label="BMR" value={formatSubtracted(recap.basal_metabolism_kcal)} />
+      <Row label="NEAT" value={formatSubtracted(recap.neat_kcal)} />
       <Row
         label="Workout calories"
         value={
-          recap.workout_count > 0
-            ? `${recap.workout_calories.toLocaleString()} (${recap.workout_count} workout${recap.workout_count === 1 ? "" : "s"})`
-            : "No workouts"
+          formatSubtracted(recap.workout_calories) +
+          (recap.workout_count > 0
+            ? ` (${recap.workout_count} workout${recap.workout_count === 1 ? "" : "s"})`
+            : "")
         }
       />
+
+      <div className="my-2 border-t border-slate-100" />
+
       <Row label="Net calories" value={formatKcal(recap.calories_net)} />
+      {!recap.neat_included && (
+        <p className="mt-1 rounded-lg bg-amber-50 px-3 py-2 text-[13px] text-amber-700">
+          Active energy data may not have synced yet — net calories above could still be missing NEAT.
+        </p>
+      )}
+      {recap.bmr_source === "default" && (
+        <p className="mt-1 rounded-lg bg-amber-50 px-3 py-2 text-[13px] text-amber-700">
+          Your basal metabolic rate has not been set — this figure is the app&apos;s placeholder.
+        </p>
+      )}
       {!recap.workout_data_synced && (
         <p className="mt-1 rounded-lg bg-amber-50 px-3 py-2 text-[13px] text-amber-700">
           Workout data may not have synced yet — net calories above could still be missing a workout.
