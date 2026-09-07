@@ -134,9 +134,16 @@ export default function DailyRecapCard({ recap }) {
       <div className="my-2 border-t border-slate-100" />
 
       <Row label="Net calories" value={formatKcal(recap.calories_net)} />
-      {!recap.neat_included && (
+      {/* Gated on the net existing, not on neat_included alone (Task 50j).
+          A null net leaves this caveat nothing to qualify: it would point at
+          a figure that is not on screen, which is what ux-reviewer failed the
+          first implementation for. The BMR caveat below is deliberately NOT
+          gated — it qualifies the BMR row's provenance, and that row shows a
+          real figure even on a nothing-logged card. */}
+      {!recap.neat_included && recap.calories_net != null && (
         <p className="mt-1 rounded-lg bg-amber-50 px-3 py-2 text-[13px] text-amber-700">
-          Active energy data may not have synced yet — net calories above could still be missing NEAT.
+          Active energy data may not have synced yet — net calories above could still be missing
+          non-exercise activity (NEAT).
         </p>
       )}
       {recap.bmr_source === "default" && (
@@ -149,6 +156,13 @@ export default function DailyRecapCard({ recap }) {
           Workout data may not have synced yet — net calories above could still be missing a workout.
         </p>
       )}
+      {/* Task 50j: TEF and NEAT are the two least familiar labels in the
+          block, and neither was ever spelled out. Expanded here rather than in
+          the row labels — the labels stay bare because the iPhone tests match
+          them by exact equality, and this file mirrors that one row for row. */}
+      <p className="mt-1 text-[12px] text-slate-400">
+        TEF: thermic effect of food. NEAT: non-exercise activity thermogenesis.
+      </p>
 
       <div className="my-2 border-t border-slate-100" />
 

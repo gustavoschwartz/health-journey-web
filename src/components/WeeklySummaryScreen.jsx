@@ -38,7 +38,13 @@ function formatSigned(n, unit = "") {
 // same way they do on DailyRecapCard. Negate after the null check, never
 // before — `-null` is `-0`, and formatSigned renders that as "0 kcal", a
 // measured zero where the honest answer is "not computed for this week".
-function formatSubtracted(n, unit = "") {
+//
+// Named apart from the card's `formatSubtracted` on purpose: this one returns
+// "No data" through formatSigned, the card's returns "—" through formatKcal,
+// and one name for two behaviours is how a later reader "unifies" them and
+// puts the wrong placeholder on one of the two screens. The thing worth being
+// single is the rule — negate after the null check — not the function.
+function formatSubtractedSigned(n, unit = "") {
   return n == null ? "No data" : formatSigned(-n, unit);
 }
 
@@ -66,6 +72,19 @@ export default function WeeklySummaryScreen() {
   }, [weekStart]);
 
   const inProgress = data?.status === "not_yet_completed";
+
+  // Task 50j: the NEAT caveat qualifies the net, so it fires only when there
+  // is a net to qualify — and then on NEAT being absent or partial. A week
+  // with no logged intake has `days_with_neat_data: 0`, which is "fewer than
+  // 7", and must still stay quiet: with no net on screen the caveat would
+  // point at a figure that is not there. Coverage is the second condition,
+  // never the first.
+  const neatNeverSynced =
+    data?.calories_net != null && data.neat_kcal_total == null;
+  const neatPartiallySynced =
+    data?.calories_net != null &&
+    data.neat_kcal_total != null &&
+    (data.days_with_neat_data ?? 0) < WEEK_LENGTH_DAYS;
 
   return (
     <div className="flex flex-col gap-4 overflow-y-auto pb-4">
@@ -130,14 +149,13 @@ export default function WeeklySummaryScreen() {
               label="Ingested total"
               value={formatSigned(data.calories_ingested_total, " kcal")}
             />
-            <StatRow label="TEF" value={formatSubtracted(data.tef_kcal_total, " kcal")} />
-            <StatRow label="BMR" value={formatSubtracted(data.bmr_kcal_total, " kcal")} />
-            <StatRow label="NEAT" value={formatSubtracted(data.neat_kcal_total, " kcal")} />
+            <StatRow label="TEF" value={formatSubtractedSigned(data.tef_kcal_total, " kcal")} />
+            <StatRow label="BMR" value={formatSubtractedSigned(data.bmr_kcal_total, " kcal")} />
+            <StatRow label="NEAT" value={formatSubtractedSigned(data.neat_kcal_total, " kcal")} />
             <StatRow
               label="Workout calories"
-              value={formatSubtracted(data.workout_calories, " kcal")}
+              value={formatSubtractedSigned(data.workout_calories, " kcal")}
             />
-            <StatRow label="Net" value={formatSigned(data.calories_net, " kcal")} />
             <StatRow
               label="Days logged"
               value={`${data.days_with_calorie_data} / ${WEEK_LENGTH_DAYS}`}
@@ -150,12 +168,30 @@ export default function WeeklySummaryScreen() {
                   : `${data.days_with_neat_data} / ${WEEK_LENGTH_DAYS}`
               }
             />
-            {(data.days_with_neat_data ?? 0) < WEEK_LENGTH_DAYS && (
+            {/* Task 50j: the net sits below a divider with the day counts
+                above it, the way DailyRecapCard sets its own net off. As
+                shipped it was mid-block, so the bottom line was not at the
+                bottom and BMR — the largest figure — was where the eye
+                landed. */}
+            <div className="my-1.5 border-t border-slate-200" />
+            <StatRow label="Net" value={formatSigned(data.calories_net, " kcal")} />
+            {neatNeverSynced && (
               <p className="mt-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[12px] text-amber-700">
-                Active energy data may not have synced yet — the weekly net could still be
-                missing NEAT.
+                Active energy data has not synced for this week — non-exercise activity (NEAT)
+                is not in the net above.
               </p>
             )}
+            {neatPartiallySynced && (
+              <p className="mt-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[12px] text-amber-700">
+                Active energy covers part of this week — non-exercise activity (NEAT) for the
+                remaining days is not in the net above.
+              </p>
+            )}
+            {/* Mirrors DailyRecapCard's footnote. The row labels stay bare
+                `TEF` / `NEAT` / `BMR`, matching the iPhone app row for row. */}
+            <p className="mt-1.5 text-[11px] text-slate-400">
+              TEF: thermic effect of food. NEAT: non-exercise activity thermogenesis.
+            </p>
           </Card>
 
           <Card title="⚖️ Weight">
