@@ -6,11 +6,18 @@ import { addDaysISO, mostRecentCompletedWeekStartISO } from "../lib/dates";
 // below which the NEAT coverage caveat shows.
 const WEEK_LENGTH_DAYS = 7;
 
-function StatRow({ label, value }) {
+// `emphasis` (Task 50j): the net is the row the block exists to explain. A
+// divider put it in the right place but left it the same size and weight as
+// every term, so the eye still landed on BMR — the largest figure on the card.
+function StatRow({ label, value, emphasis = false }) {
   return (
     <div className="flex items-center justify-between border-b border-slate-100 py-1.5 last:border-0">
-      <span className="text-[13px] text-slate-500">{label}</span>
-      <span className="text-[13px] font-medium text-slate-900">{value}</span>
+      <span className={`text-[13px] ${emphasis ? "font-semibold text-slate-900" : "text-slate-500"}`}>
+        {label}
+      </span>
+      <span className={emphasis ? "text-[15px] font-bold text-slate-900" : "text-[13px] font-medium text-slate-900"}>
+        {value}
+      </span>
     </div>
   );
 }
@@ -79,12 +86,21 @@ export default function WeeklySummaryScreen() {
   // 7", and must still stay quiet: with no net on screen the caveat would
   // point at a figure that is not there. Coverage is the second condition,
   // never the first.
-  const neatNeverSynced =
+  // Named for what the predicate knows, not for a cause it cannot
+  // establish: neat_kcal_total is null whenever no day produced a figure,
+  // which is usually a sync gap but need not be. The pinned copy says
+  // "has not synced"; the condition does not know that.
+  const neatUnavailable =
     data?.calories_net != null && data.neat_kcal_total == null;
+  // The count must be KNOWN, not defaulted: `?? 0` would turn an unknown
+  // coverage into a confirmed "covers part of this week", three rows below a
+  // row rendering the same field as "No data". Null is not "below 7", which is
+  // also how the pinned copy reads.
   const neatPartiallySynced =
     data?.calories_net != null &&
     data.neat_kcal_total != null &&
-    (data.days_with_neat_data ?? 0) < WEEK_LENGTH_DAYS;
+    data.days_with_neat_data != null &&
+    data.days_with_neat_data < WEEK_LENGTH_DAYS;
 
   return (
     <div className="flex flex-col gap-4 overflow-y-auto pb-4">
@@ -145,20 +161,18 @@ export default function WeeklySummaryScreen() {
               Workouts card above — it is the workout term, and showing it in
               both places would be one figure twice under two labels. */}
           <Card title="🍽️ Calories">
+            {/* Coverage first, then the arithmetic: with these between the
+                last term and the total, the value column read `-2380 kcal`,
+                `6 / 7`, `7 / 7`, then the net, and a reader checking the sum
+                had two ratios sitting among the addends. Still above the net,
+                which is what the DoD requires. */}
             <StatRow
-              label="Ingested total"
-              value={formatSigned(data.calories_ingested_total, " kcal")}
-            />
-            <StatRow label="TEF" value={formatSubtractedSigned(data.tef_kcal_total, " kcal")} />
-            <StatRow label="BMR" value={formatSubtractedSigned(data.bmr_kcal_total, " kcal")} />
-            <StatRow label="NEAT" value={formatSubtractedSigned(data.neat_kcal_total, " kcal")} />
-            <StatRow
-              label="Workout calories"
-              value={formatSubtractedSigned(data.workout_calories, " kcal")}
-            />
-            <StatRow
-              label="Days logged"
-              value={`${data.days_with_calorie_data} / ${WEEK_LENGTH_DAYS}`}
+              label="Days with calorie data"
+              value={
+                data.days_with_calorie_data == null
+                  ? "No data"
+                  : `${data.days_with_calorie_data} / ${WEEK_LENGTH_DAYS}`
+              }
             />
             <StatRow
               label="Days with NEAT data"
@@ -168,14 +182,38 @@ export default function WeeklySummaryScreen() {
                   : `${data.days_with_neat_data} / ${WEEK_LENGTH_DAYS}`
               }
             />
+            <StatRow
+              label="Calories consumed"
+              value={formatSigned(data.calories_ingested_total, " kcal")}
+            />
+            <StatRow label="TEF" value={formatSubtractedSigned(data.tef_kcal_total, " kcal")} />
+            <StatRow label="BMR" value={formatSubtractedSigned(data.bmr_kcal_total, " kcal")} />
+            <StatRow label="NEAT" value={formatSubtractedSigned(data.neat_kcal_total, " kcal")} />
+            <StatRow
+              label="Workout calories"
+              value={formatSubtractedSigned(data.workout_calories, " kcal")}
+            />
             {/* Task 50j: the net sits below a divider with the day counts
                 above it, the way DailyRecapCard sets its own net off. As
                 shipped it was mid-block, so the bottom line was not at the
                 bottom and BMR — the largest figure — was where the eye
                 landed. */}
             <div className="my-1.5 border-t border-slate-200" />
-            <StatRow label="Net" value={formatSigned(data.calories_net, " kcal")} />
-            {neatNeverSynced && (
+            <StatRow label="Net calories" value={formatSigned(data.calories_net, " kcal")} emphasis />
+            {/* A null net is a week nothing was logged for, and "No data" on
+                its own does not say whether the app failed or the user logged
+                nothing. Deliberately the screen's plain muted style, not the
+                amber caveat: it explains an absence rather than warning about
+                a figure on screen, which is the distinction the gate draws.
+                Darker than the footnote beneath it, though: this line is the
+                only thing saying why five rows read "No data", and the glossary
+                under it is the least important text in the block. */}
+            {data.calories_net == null && (
+              <p className="mt-1.5 text-[13px] text-slate-600">
+                No food logged this week, so there is no net to compute.
+              </p>
+            )}
+            {neatUnavailable && (
               <p className="mt-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[12px] text-amber-700">
                 Active energy data has not synced for this week — non-exercise activity (NEAT)
                 is not in the net above.
@@ -189,7 +227,7 @@ export default function WeeklySummaryScreen() {
             )}
             {/* Mirrors DailyRecapCard's footnote. The row labels stay bare
                 `TEF` / `NEAT` / `BMR`, matching the iPhone app row for row. */}
-            <p className="mt-1.5 text-[11px] text-slate-400">
+            <p className="mt-1.5 text-[12px] text-slate-500">
               TEF: thermic effect of food. NEAT: non-exercise activity thermogenesis.
             </p>
           </Card>
