@@ -217,3 +217,29 @@ export async function getMetricsCombined({ startDate, endDate }) {
 
   return response.json();
 }
+
+/** GET /analysis/{training-load|sleep-need} (Task 80): one entry per date in
+ * [fromDate, toDate], each the single-date tool's payload for that date.
+ * Returns the `data` array, and throws on a non-ok response like every other
+ * request in this file. */
+async function getAnalysisRange(path, { fromDate, toDate }) {
+  const params = new URLSearchParams({ from_date: fromDate, to_date: toDate });
+  const response = await fetch(`${API_URL}/analysis/${path}?${params}`);
+
+  if (!response.ok) {
+    throw new Error(`Analysis ${path} request failed: ${response.status}`);
+  }
+
+  const body = await response.json();
+  return body.data;
+}
+
+/** GET /analysis/training-load?from_date=...&to_date=... (Task 82) */
+export function getTrainingLoadRange(range) {
+  return getAnalysisRange("training-load", range);
+}
+
+/** GET /analysis/sleep-need?from_date=...&to_date=... (Task 82) */
+export function getSleepNeedRange(range) {
+  return getAnalysisRange("sleep-need", range);
+}

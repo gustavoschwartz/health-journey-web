@@ -3,7 +3,10 @@ import MetricLineChart from "./charts/MetricLineChart";
 import MetricBarChart from "./charts/MetricBarChart";
 import FeelingStripChart from "./charts/FeelingStripChart";
 import CombinedChart from "./charts/CombinedChart";
+import AnalysisLineChart from "./charts/AnalysisLineChart";
 import { useCombinedMetrics } from "./charts/useCombinedMetrics";
+import { useAnalysisRanges } from "./charts/useAnalysisRanges";
+import { ACWR_ELEVATED_THRESHOLD } from "./charts/analysisChartMath";
 
 const RANGE_OPTIONS = [
   { label: "7 days", value: 7 },
@@ -30,15 +33,43 @@ const FEELING_CHARTS = [
   { metric: "overall_feeling", label: "Overall Feeling" },
 ];
 
+// Task 82: the same cards, titles, units and colours as HealthJourneyApp's
+// ChartsScreen.tsx and architecture.md's Phase 3 chart list. Acute and Chronic
+// sit on separate cards because a 7-day total and a 28-day average are about 7
+// times apart on one axis, which would read as a load spike.
+const TRAINING_LOAD_CARDS = [
+  { field: "acute_load_7d", label: "Acute Load", unit: "7-day total", color: "#ea580c" },
+  { field: "chronic_load_28d", label: "Chronic Load", unit: "28-day average", color: "#7c3aed" },
+  {
+    field: "acwr",
+    label: "ACWR",
+    unit: "acute to chronic",
+    color: "#0f766e",
+    referenceY: ACWR_ELEVATED_THRESHOLD,
+  },
+];
+
+// Need and actual share one card and one hours axis. Actual sleep keeps the
+// indigo the Sleep card and CombinedChart use for sleep; sleep need takes a
+// colour used nowhere else on this screen.
+const SLEEP_NEED_SERIES = [
+  { field: "sleep_need_hours", name: "Sleep need", color: "#db2777" },
+  { field: "actual_sleep_hours", name: "Actual sleep", color: "#6366f1" },
+];
+
 // Task 29: every chart below is fed by one shared /metrics/combined fetch
 // instead of a fetch of its own, so they're all guaranteed to align to the
 // same date range, and the whole screen costs exactly one network call per
 // range change. CombinedChart is the single-canvas overlay of all 9 series;
 // the individual cards below it stay, since they're already verified
-// per-metric detail views, not a duplicate of the combined chart.
+// per-metric detail views, not a duplicate of the combined chart. Task 82's
+// analysis cards are the exception: /analysis/training-load and
+// /analysis/sleep-need are two more calls per range change, each with its own
+// per-card loading and failure state, drawn inside the same gate below.
 export default function ChartsScreen() {
   const [days, setDays] = useState(30);
   const { data, error } = useCombinedMetrics(days);
+  const { trainingLoad, sleepNeed } = useAnalysisRanges(days);
 
   return (
     <div className="flex flex-col gap-4 overflow-y-auto pb-4">
@@ -89,6 +120,26 @@ export default function ChartsScreen() {
           {FEELING_CHARTS.map((chart) => (
             <FeelingStripChart key={chart.metric} {...chart} data={data[chart.metric]} />
           ))}
+
+          {TRAINING_LOAD_CARDS.map(({ field, label, unit, color, referenceY }) => (
+            <AnalysisLineChart
+              key={field}
+              label={label}
+              unit={unit}
+              series={[{ field, name: label, color }]}
+              entries={trainingLoad.data}
+              error={trainingLoad.error}
+              referenceY={referenceY}
+            />
+          ))}
+
+          <AnalysisLineChart
+            label="Sleep Need"
+            unit="hours"
+            series={SLEEP_NEED_SERIES}
+            entries={sleepNeed.data}
+            error={sleepNeed.error}
+          />
         </>
       )}
     </div>
