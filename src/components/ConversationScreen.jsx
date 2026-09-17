@@ -44,13 +44,59 @@ function updateMessage(messages, id, updater) {
 // markdown awareness of its own, so unstripped text would have the voice
 // literally reading out asterisks, dashes, and link brackets. The opposite
 // of Task 12c's Copy button, deliberately — see handleCopy's comment.
+// Task 100. Explicit code-point ranges rather than
+// /\p{Extended_Pictographic}/u, which is less correct against these inputs:
+// it leaves a flag's two regional indicators, the variation selector on a
+// heart and a thumb's skin-tone modifier behind. The same rules in the same
+// order as HealthJourneyApp/src/markdown.tsx's copy, which carries the same
+// reasoning -- identical in behaviour, not in bytes: that file is TypeScript
+// and formatted by its own prettier config.
+// The three joiners are alternatives rather than class members: a combining
+// mark inside a character class is what `no-misleading-character-class` warns
+// about, and it reads as if it applied to the base character. Here they are
+// matched on their own, which is the intent -- they are the residue left
+// behind once the pictograph they decorated is gone.
+const EMOJI =
+  /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]|\u{FE0F}|\u{200D}|\u{20E3}/gu;
+
+// A table's delimiter row: only pipes, dashes, colons and spaces, and at
+// least one pipe -- the pipe is what keeps this off an ordinary sentence
+// containing a dash. Matched with its newline so the line goes rather than
+// becoming a silent gap.
+const TABLE_DELIMITER_ROW = /^[ \t]*\|[-:|\t ]*\|[ \t]*\n?/gm;
+
+// Any other line that starts with a pipe: a data or header row.
+const TABLE_ROW = /^[ \t]*\|.*$/gm;
+
 function stripMarkdownForSpeech(text) {
   return text
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // [text](url) -> text
     .replace(/\*\*([^*]+)\*\*/g, "$1") // **bold** -> bold
     .replace(/\*([^*]+)\*/g, "$1") // *italic* -> italic
     .replace(/^#{1,6}\s+/gm, "") // # Heading -> Heading
-    .replace(/^[-*+]\s+/gm, ""); // - item / * item -> item
+    .replace(/^[-*+]\s+/gm, "") // - item / * item -> item
+    // Tables (Task 100). The delimiter row goes first: after the row rule it
+    // would already have become "---, ---" and read out as dashes.
+    .replace(TABLE_DELIMITER_ROW, "")
+    .replace(TABLE_ROW, (line) =>
+      line
+        .trim()
+        .replace(/^\|/, "")
+        .replace(/\|$/, "")
+        .split("|")
+        .map((cell) => cell.trim())
+        .join(", "),
+    )
+    .replace(EMOJI, "") // Task 100
+    // Whitespace cleanup. Written for what removing an emoji leaves behind
+    // -- a doubled space mid-line, or a stranded one at either end -- but
+    // applied to the whole reply, so it also flattens nested-bullet
+    // indentation and any deliberate double space in the prose. That is
+    // accepted rather than overlooked: none of it is audible through a speech
+    // engine, and narrowing the rules to emoji sites alone would buy nothing
+    // a listener could hear.
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/^[ \t]+|[ \t]+$/gm, "");
 }
 
 function SyncStatus({ syncState }) {
