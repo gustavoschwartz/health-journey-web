@@ -57,6 +57,26 @@ const SLEEP_NEED_SERIES = [
   { field: "actual_sleep_hours", name: "Actual sleep", color: "#6366f1" },
 ];
 
+// Task 83. The cuts readiness actually scores: a mean over the night window
+// and a minimum over it, which are not the calendar-day HRV and last-sample
+// resting heart rate the Phase 3 cards plot. Both read the single `value`
+// field GET /analysis/overnight returns. The colours are darker shades of
+// those daily lines, so an overnight card reads as their sibling.
+const OVERNIGHT_CARDS = [
+  {
+    key: "overnightHrv",
+    label: "Overnight HRV (readiness)",
+    unit: "ms",
+    color: "#b45309",
+  },
+  {
+    key: "overnightRestingHr",
+    label: "Overnight Lowest HR (readiness)",
+    unit: "bpm",
+    color: "#be123c",
+  },
+];
+
 // Task 29: every chart below is fed by one shared /metrics/combined fetch
 // instead of a fetch of its own, so they're all guaranteed to align to the
 // same date range, and the whole screen costs exactly one network call per
@@ -64,12 +84,15 @@ const SLEEP_NEED_SERIES = [
 // the individual cards below it stay, since they're already verified
 // per-metric detail views, not a duplicate of the combined chart. Task 82's
 // analysis cards are the exception: /analysis/training-load and
-// /analysis/sleep-need are two more calls per range change, each with its own
+// /analysis/sleep-need and, since Task 83, /analysis/overnight once per
+// metric are four more calls per range change, each with its own
 // per-card loading and failure state, drawn inside the same gate below.
 export default function ChartsScreen() {
   const [days, setDays] = useState(30);
   const { data, error } = useCombinedMetrics(days);
-  const { trainingLoad, sleepNeed } = useAnalysisRanges(days);
+  const { trainingLoad, sleepNeed, overnightHrv, overnightRestingHr } =
+    useAnalysisRanges(days);
+  const overnight = { overnightHrv, overnightRestingHr };
 
   return (
     <div className="flex flex-col gap-4 overflow-y-auto pb-4">
@@ -140,6 +163,17 @@ export default function ChartsScreen() {
             entries={sleepNeed.data}
             error={sleepNeed.error}
           />
+
+          {OVERNIGHT_CARDS.map(({ key, label, unit, color }) => (
+            <AnalysisLineChart
+              key={key}
+              label={label}
+              unit={unit}
+              series={[{ field: "value", name: label, color }]}
+              entries={overnight[key].data}
+              error={overnight[key].error}
+            />
+          ))}
         </>
       )}
     </div>

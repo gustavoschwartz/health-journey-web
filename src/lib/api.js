@@ -222,8 +222,15 @@ export async function getMetricsCombined({ startDate, endDate }) {
  * [fromDate, toDate], each the single-date tool's payload for that date.
  * Returns the `data` array, and throws on a non-ok response like every other
  * request in this file. */
-async function getAnalysisRange(path, { fromDate, toDate }) {
-  const params = new URLSearchParams({ from_date: fromDate, to_date: toDate });
+async function getAnalysisRange(path, { fromDate, toDate }, extraParams = {}) {
+  // Task 83: `extraParams` is optional, so every existing two-argument call is
+  // unchanged. The overnight route is the first /analysis endpoint that
+  // selects between two metrics rather than serving one analysis.
+  const params = new URLSearchParams({
+    from_date: fromDate,
+    to_date: toDate,
+    ...extraParams,
+  });
   const response = await fetch(`${API_URL}/analysis/${path}?${params}`);
 
   if (!response.ok) {
@@ -242,4 +249,17 @@ export function getTrainingLoadRange(range) {
 /** GET /analysis/sleep-need?from_date=...&to_date=... (Task 82) */
 export function getSleepNeedRange(range) {
   return getAnalysisRange("sleep-need", range);
+}
+
+/** GET /analysis/overnight?metric=sleep_window_hrv&... (Task 83): the night
+ * window's mean HRV, the component readiness scores. A night with no sample
+ * in the window comes back `no_reading` with no `value`. */
+export function getOvernightHrvRange(range) {
+  return getAnalysisRange("overnight", range, { metric: "sleep_window_hrv" });
+}
+
+/** GET /analysis/overnight?metric=rhr_proxy&... (Task 83): the night window's
+ * lowest heart rate, the resting-HR proxy readiness scores. */
+export function getOvernightRestingHrRange(range) {
+  return getAnalysisRange("overnight", range, { metric: "rhr_proxy" });
 }
